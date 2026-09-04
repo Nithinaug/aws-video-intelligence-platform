@@ -1,0 +1,8 @@
+node_modules/
+dist/
+data/
+.env
+*.log
+backend/videointell-backend
+backend/tmp/
+.DS_Store
