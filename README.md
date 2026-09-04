@@ -166,13 +166,6 @@ internet directly.
 
 ## How this is being built
 
-This repo is being built **incrementally, alongside learning the AWS
-services by hand in the Console** (the author is studying for SAA-C03),
-rather than building the full application against mocked AWS services up
-front. The build order is: provision one piece of AWS infra for real, wire
-the one app feature that depends on it, verify it end-to-end, then move to
-the next piece.
-
 - **Frontend**: React + TypeScript + Vite + Tailwind
 - **Backend**: Go (Gin), Postgres
 
