@@ -176,25 +176,6 @@ the next piece.
 - **Frontend**: React + TypeScript + Vite + Tailwind
 - **Backend**: Go (Gin), Postgres
 
-## Current scope
-
-Only auth + upload + storage exist right now. What's here:
-
-- Register / log in (JWT)
-- Create a video record, upload the file via a presigned-style URL, mark it uploaded
-- List a user's videos, view one with basic playback
-
-Not yet built (intentionally): VPC/EC2 deployment, async processing queue
-(SQS/Lambda), transcoding (MediaConvert), transcription (Transcribe), AI
-summarization/chapters (Bedrock), transcript search, CloudFront delivery.
-Each of these gets added once its AWS service is actually provisioned in the
-Console (and later reproduced as CDK code).
-
-Storage is behind a small `storage.Storage` Go interface with two
-implementations: a local filesystem one (default, `PROVIDER=local`, zero AWS
-account needed) and an S3 one (`internal/storage/s3.go`) that gets switched on
-once a real bucket exists.
-
 ## Project layout
 
 ```
