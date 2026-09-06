@@ -10,7 +10,6 @@ type Deps struct {
 	AuthHandler  *handlers.AuthHandler
 	VideoHandler *handlers.VideoHandler
 	JWTSecret    string
-	LocalStorage bool
 }
 
 func New(d Deps) *gin.Engine {
@@ -19,10 +18,8 @@ func New(d Deps) *gin.Engine {
 
 	r.GET("/healthz", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
 
-	if d.LocalStorage {
-		r.PUT("/local-upload/*key", d.VideoHandler.LocalUpload)
-		r.GET("/local-files/*key", d.VideoHandler.LocalFile)
-	}
+	r.PUT("/local-upload/*key", d.VideoHandler.LocalUpload)
+	r.GET("/local-files/*key", d.VideoHandler.LocalFile)
 
 	api := r.Group("/api")
 	{

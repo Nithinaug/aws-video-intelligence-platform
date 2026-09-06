@@ -1,8 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 body {
   margin: 0;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  background: #0b0f19;
-  color: #e5e7eb;
+  font-family: 'DM Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+  background: #0d1117;
+  color: #e2e8f0;
+  -webkit-font-smoothing: antialiased;
 }

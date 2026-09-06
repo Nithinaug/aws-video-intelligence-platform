@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -42,7 +43,10 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	user, err := h.Store.CreateUser(req.Email, hash)
-	if err != nil {
+	if errors.Is(err, store.ErrEmailTaken) {
+		c.JSON(http.StatusConflict, gin.H{"error": "email already registered"})
+		return
+	} else if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -31,22 +31,24 @@ export default function Upload() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <form onSubmit={onSubmit} className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#0d1117]">
+      <form onSubmit={onSubmit} className="w-full max-w-md flex flex-col gap-[22px] p-8 bg-[#131c27] border border-[#1e2d3d] rounded-2xl shadow-[0_12px_40px_#00000059]">
         <h1 className="text-xl font-semibold text-slate-100">Upload a video</h1>
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <div>
-          <label className="block text-sm text-slate-400 mb-1">Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Project Meeting.mp4"
-            className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-slate-100"
-          />
+        {error && <p className="text-xs text-red-400 text-center">{error}</p>}
+        <div className="flex flex-col gap-[9px]">
+          <label className="text-[11px] font-bold tracking-[0.09em] text-slate-400">TITLE</label>
+          <div className="flex items-center px-3.5 bg-[#0d1117] border border-[#1e2d3d] rounded-[10px] transition-colors focus-within:border-slate-100">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Project Meeting.mp4"
+              className="flex-1 min-w-0 bg-transparent border-none text-slate-100 text-sm py-3.5 outline-none placeholder:text-slate-500"
+            />
+          </div>
         </div>
-        <div>
-          <label className="block text-sm text-slate-400 mb-1">Video file</label>
+        <div className="flex flex-col gap-[9px]">
+          <label className="text-[11px] font-bold tracking-[0.09em] text-slate-400">VIDEO FILE</label>
           <input
             type="file"
             accept="video/*"
@@ -58,7 +60,7 @@ export default function Upload() {
         <button
           type="submit"
           disabled={!!progress}
-          className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded px-3 py-2 font-medium"
+          className="w-full mt-1 py-3.5 rounded-xl bg-slate-50 text-[#0d1117] text-[15px] font-semibold cursor-pointer transition-colors hover:not-disabled:bg-slate-200 disabled:opacity-60 disabled:cursor-default"
         >
           {progress ?? 'Upload'}
         </button>

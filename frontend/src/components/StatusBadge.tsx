@@ -1,6 +1,6 @@
 const STYLES: Record<string, string> = {
-  uploading: 'bg-slate-700 text-slate-200',
-  uploaded: 'bg-emerald-900 text-emerald-200',
+  uploading: 'bg-[#334155]/30 text-slate-300',
+  uploaded: 'bg-[#10B981]/15 text-emerald-300',
 }
 
 const LABELS: Record<string, string> = {
@@ -10,7 +10,7 @@ const LABELS: Record<string, string> = {
 
 export default function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STYLES[status] ?? 'bg-slate-700 text-slate-200'}`}>
+    <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold ${STYLES[status] ?? 'bg-[#334155]/30 text-slate-300'}`}>
       {LABELS[status] ?? status}
     </span>
   )

@@ -13,14 +13,14 @@ export default function VideoDetail() {
   }, [id])
 
   if (!detail) {
-    return <div className="min-h-screen flex items-center justify-center text-slate-500">Loading...</div>
+    return <div className="min-h-screen flex items-center justify-center bg-[#0d1117] text-slate-400">Loading...</div>
   }
 
   const { video, url } = detail
 
   return (
-    <div className="min-h-screen max-w-4xl mx-auto px-4 py-8 space-y-6">
-      <Link to="/" className="text-sm text-violet-400">&larr; Back to dashboard</Link>
+    <div className="min-h-screen max-w-4xl mx-auto px-4 py-8 space-y-6 bg-[#0d1117]">
+      <Link to="/" className="text-sm text-sky-400">&larr; Back to dashboard</Link>
 
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-100">{video.title}</h1>
@@ -28,9 +28,9 @@ export default function VideoDetail() {
       </div>
 
       {url ? (
-        <video controls className="w-full rounded-lg bg-black" src={url} />
+        <video controls className="w-full rounded-2xl bg-black" src={url} />
       ) : (
-        <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 text-slate-400 text-sm">
+        <div className="bg-[#131c27] border border-[#1e2d3d] rounded-2xl p-4 text-slate-400 text-sm">
           Upload still in progress...
         </div>
       )}

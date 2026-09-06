@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 type LocalStorage struct {
@@ -17,12 +16,8 @@ func NewLocalStorage(dataDir, baseURL string) *LocalStorage {
 	return &LocalStorage{DataDir: dataDir, BaseURL: baseURL}
 }
 
-func (l *LocalStorage) PresignUpload(key, contentType string, expires time.Duration) (string, error) {
-	return fmt.Sprintf("%s/local-upload/%s", l.BaseURL, key), nil
-}
-
-func (l *LocalStorage) PresignDownload(key string, expires time.Duration) (string, error) {
-	return fmt.Sprintf("%s/local-files/%s", l.BaseURL, key), nil
+func (l *LocalStorage) PresignUpload(key string) string {
+	return fmt.Sprintf("%s/local-upload/%s", l.BaseURL, key)
 }
 
 func (l *LocalStorage) PublicURL(key string) string {

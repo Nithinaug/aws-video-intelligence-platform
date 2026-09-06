@@ -14,7 +14,7 @@ import (
 
 type VideoHandler struct {
 	Store   *store.Store
-	Storage storage.Storage
+	Storage *storage.LocalStorage
 }
 
 type createVideoRequest struct {
@@ -39,13 +39,7 @@ func (h *VideoHandler) Create(c *gin.Context) {
 		return
 	}
 
-	uploadURL, err := h.Storage.PresignUpload(key, req.ContentType, 15*time.Minute)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"video": video, "upload_url": uploadURL})
+	c.JSON(http.StatusCreated, gin.H{"video": video, "upload_url": h.Storage.PresignUpload(key)})
 }
 
 func (h *VideoHandler) CompleteUpload(c *gin.Context) {

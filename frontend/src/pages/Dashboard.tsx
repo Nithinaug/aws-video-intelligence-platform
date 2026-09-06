@@ -23,31 +23,36 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <div className="min-h-screen max-w-5xl mx-auto px-4 py-8">
+    <div className="min-h-screen max-w-5xl mx-auto px-4 py-8 bg-[#0d1117]">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-100">Video Intelligence</h1>
-          <p className="text-sm text-slate-500">{user?.email}</p>
+          <h1 className="text-2xl font-bold tracking-[0.01em] text-slate-100">
+            Video <span className="text-sky-400">Intelligence</span>
+          </h1>
+          <p className="text-sm text-slate-400">{user?.email}</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => navigate('/upload')}
-            className="bg-violet-600 hover:bg-violet-500 rounded px-4 py-2 font-medium"
+            className="px-4 py-2 rounded-xl bg-slate-50 text-[#0d1117] text-sm font-semibold transition-colors hover:bg-slate-200"
           >
             Upload video
           </button>
-          <button onClick={logout} className="border border-slate-700 rounded px-4 py-2 text-slate-300">
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#1a2233] border border-[#334155] text-slate-100 text-sm font-medium transition-colors hover:border-red-400/40 hover:bg-[#2a1a1f] hover:text-red-400"
+          >
             Log out
           </button>
         </div>
       </div>
 
       {loading ? (
-        <p className="text-slate-500">Loading...</p>
+        <p className="text-slate-400">Loading...</p>
       ) : videos.length === 0 ? (
-        <div className="text-center py-24 text-slate-500">
+        <div className="text-center py-24 text-slate-400">
           <p>No videos yet.</p>
-          <button onClick={() => navigate('/upload')} className="text-violet-400 mt-2">
+          <button onClick={() => navigate('/upload')} className="text-sky-400 mt-2">
             Upload your first video
           </button>
         </div>

@@ -1,11 +1,16 @@
 package store
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 
 	"videointell/backend/internal/models"
 )
+
+var ErrEmailTaken = errors.New("email already registered")
 
 type Store struct {
 	db *sqlx.DB
@@ -18,6 +23,10 @@ func New(db *sqlx.DB) *Store {
 func (s *Store) CreateUser(email, passwordHash string) (models.User, error) {
 	u := models.User{ID: uuid.NewString(), Email: email, PasswordHash: passwordHash}
 	_, err := s.db.Exec(`INSERT INTO users (id, email, password_hash) VALUES ($1,$2,$3)`, u.ID, u.Email, u.PasswordHash)
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+		return u, ErrEmailTaken
+	}
 	return u, err
 }
 

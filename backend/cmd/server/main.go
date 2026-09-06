@@ -33,7 +33,6 @@ func main() {
 		AuthHandler:  authHandler,
 		VideoHandler: videoHandler,
 		JWTSecret:    cfg.JWTSecret,
-		LocalStorage: true,
 	})
 
 	log.Printf("video-intell API listening on :%s", cfg.Port)
