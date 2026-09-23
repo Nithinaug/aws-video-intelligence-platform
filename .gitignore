@@ -6,3 +6,5 @@ data/
 backend/videointell-backend
 backend/tmp/
 .DS_Store
+.claude/*.local.md
+graphify-out/
