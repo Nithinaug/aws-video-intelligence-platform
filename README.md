@@ -252,6 +252,11 @@ Open http://localhost:5173, register an account, and upload a video. With
 local storage it's saved under `backend/data/`; with S3 it goes straight from
 the browser to the bucket via a presigned URL.
 
+#Infrastructure as a code
+
+During deployment we use Terraform for handling the infra as code for easy
+deploy and drop
+
 ## Environment variables
 
 ### Backend
