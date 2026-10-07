@@ -234,17 +234,49 @@ docker run -d --name videointell-pg -p 5432:5432 \
   -e POSTGRES_USER=videointell -e POSTGRES_PASSWORD=videointell -e POSTGRES_DB=videointell \
   postgres:16-alpine
 
-# Backend
+# Backend (local storage)
 cd backend
-cp .env.example .env
 go run ./cmd/server
+
+# Backend (S3 storage)
+cd backend
+STORAGE_BACKEND=s3 S3_BUCKET=<your-bucket> go run ./cmd/server
 
 # Frontend
 cd frontend
-cp .env.example .env
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173, register an account, and upload a video — it's
-stored on the local filesystem and playable straight back from the dashboard.
+Open http://localhost:5173, register an account, and upload a video. With
+local storage it's saved under `backend/data/`; with S3 it goes straight from
+the browser to the bucket via a presigned URL.
+
+## Environment variables
+
+### Backend
+
+Read from the process environment (`.env` files are not loaded automatically).
+Every variable has a local-dev default, so nothing is required for local storage.
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `8080` | API listen port |
+| `DATABASE_URL` | `postgres://videointell:videointell@localhost:5432/videointell?sslmode=disable` | Postgres connection string |
+| `JWT_SECRET` | `dev-secret-change-me` | JWT signing secret; must be set to a strong value outside local dev |
+| `LOCAL_DATA_DIR` | `./data` | Upload directory when `STORAGE_BACKEND=local` |
+| `STORAGE_BACKEND` | `local` | `local` or `s3` |
+| `S3_BUCKET` | _(empty)_ | Bucket name; required when `STORAGE_BACKEND=s3` |
+
+AWS credentials and region are never configured here. With `STORAGE_BACKEND=s3`
+the AWS SDK resolves them through its default provider chain: `aws configure` /
+`AWS_PROFILE` / `AWS_REGION` locally, and the IAM role (ECS task role or EC2
+instance role) in production.
+
+### Frontend
+
+Put these in `frontend/.env` (git-ignored; Vite loads it automatically).
+
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_BASE_URL` | `http://localhost:8080` | Backend API base URL |
