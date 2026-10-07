@@ -11,17 +11,22 @@ compute and doesn't scale well when many users upload at once.
 
 ## Proposed solution
 
-A cloud-based platform on AWS where users upload videos through a web app,
-originals are stored in S3, and processing is handled asynchronously via
-SQS + Lambda rather than on the app servers themselves:
+A cloud-based platform on AWS where users upload videos through a web app
+straight to S3, and processing runs asynchronously in an event-driven
+pipeline that is defined entirely as AWS configuration, not application code:
 
+- **Amazon S3** — original videos, processed videos, transcripts, artifacts
+- **S3 event notifications + Amazon SQS** — every upload becomes a durable,
+  buffered processing job
+- **Amazon EventBridge Pipes + AWS Step Functions** — pull jobs off the queue
+  and orchestrate each processing step with retries, using Step Functions'
+  native service integrations
 - **AWS Elemental MediaConvert** — transcodes videos into optimized
   resolutions/formats
 - **Amazon Transcribe** — converts speech to searchable text
 - **Amazon Bedrock** — analyzes transcripts into summaries, key topics,
   chapters, and action items
 - **Amazon RDS (Postgres)** — application and video metadata
-- **Amazon S3** — original videos, processed videos, transcripts, artifacts
 - **Amazon CloudFront** — content delivery
 
 The web app runs as Docker containers on Amazon ECS using the **EC2 launch
@@ -68,43 +73,52 @@ alarms.
                              |
                      Application API
                              |
-             +---------------+----------------+
-             |               |                |
-             v               v                v
-        +---------+     +---------+      +---------+
-        |   RDS   |     |   S3    |      |  SQS    |
-        |Postgres |     | Videos  |      |  Queue  |
-        +---------+     +----+----+      +----+----+
-                             |                 |
-                             |                 v
-                             |            +---------+
-                             |            | Lambda  |
-                             |            +----+----+
-                             |                 |
-                     +-------+-----------------+------------+
-                     |                         |            |
-                     v                         v            v
-              +-------------+          +-------------+ +----------+
-              | MediaConvert|          | Transcribe  | | Bedrock  |
-              |             |          |             | |          |
-              | Video       |          | Speech ->   | | AI       |
-              | Processing  |          | Text        | | Analysis |
-              +------+------+          +------+------+ +----+-----+
-                     |                        |              |
-                     +------------------------+--------------+
-                                              |
-                                              v
-                                         +---------+
-                                         |   S3    |
-                                         |Processed|
-                                         | Content |
-                                         +----+----+
-                                              |
-                                              v
-                                         CloudFront
-                                              |
-                                              v
-                                         USER DASHBOARD
+                 +-----------+-----------+
+                 |                       |
+                 v                       v
+            +---------+    presigned  +---------+
+            |   RDS   |    URLs       |   S3    | <--- browser uploads
+            |Postgres |               | Videos  |      directly
+            +---------+               +----+----+
+                                           |
+                                           | S3 event notification
+                                           v
+                                      +---------+
+                                      |  SQS    |
+                                      |  Queue  |
+                                      +----+----+
+                                           |
+                                           | EventBridge Pipe
+                                           v
+                                   +----------------+
+                                   | Step Functions |
+                                   | state machine  |
+                                   +-------+--------+
+                                           |
+                     +---------------------+---------------+
+                     |                     |               |
+                     v                     v               v
+              +-------------+      +-------------+   +----------+
+              | MediaConvert|      | Transcribe  |   | Bedrock  |
+              |             |      |             |   |          |
+              | Video       |      | Speech ->   |   | AI       |
+              | Processing  |      | Text        |   | Analysis |
+              +------+------+      +------+------+   +----+-----+
+                     |                    |               |
+                     +--------------------+---------------+
+                                          |
+                                          v
+                                     +---------+
+                                     |   S3    |
+                                     |Processed|
+                                     | Content |
+                                     +----+----+
+                                          |
+                                          v
+                                     CloudFront
+                                          |
+                                          v
+                                     USER DASHBOARD
 ```
 
 Each EC2 instance runs the ECS agent and joins the ECS cluster; ECS then
@@ -163,26 +177,27 @@ through a NAT Gateway in the public subnet.
 ### Video processing workflow
 
 ```
-1. User uploads video
+1. User requests an upload; API returns a presigned S3 URL
           |
-2. Video stored in S3
+2. Browser uploads the video directly to S3
           |
-3. Processing job created
+3. S3 event notification puts a message on SQS
           |
-4. Message placed in SQS
+4. EventBridge Pipe starts a Step Functions execution
           |
-5. Lambda picks up job
+5. MediaConvert transcodes the video
           |
-6. MediaConvert processes video
+6. Transcribe generates the transcript
           |
-7. Transcribe generates transcript
+7. Bedrock analyzes the transcript
           |
-8. Bedrock analyzes transcript
+8. Results are written to S3
           |
-9. Results stored in S3/RDS
-          |
-10. User sees results in dashboard
+9. User sees results in the dashboard (served via presigned URLs)
 ```
+
+The application's only AWS SDK usage is generating presigned S3 URLs. The
+whole processing pipeline is AWS configuration, managed with Terraform.
 
 ### AWS services in scope
 
@@ -190,37 +205,59 @@ through a NAT Gateway in the public subnet.
 |---|---|
 | Core infrastructure | VPC, Subnets, Route Tables, Internet Gateway, NAT Gateway, Security Groups, EC2, ECS (EC2 launch type), ECR, Application Load Balancer, Auto Scaling |
 | Storage & database | S3, RDS PostgreSQL |
-| Serverless & event-driven | SQS, Lambda |
+| Event-driven orchestration | S3 Event Notifications, SQS, EventBridge Pipes, Step Functions |
 | Video & AI | MediaConvert, Amazon Transcribe, Amazon Bedrock |
 | Delivery & networking | CloudFront, Route 53 |
 | Security | IAM, Secrets Manager, AWS WAF (optional) |
 | Monitoring | CloudWatch |
 
+## Infrastructure as code
+
+AWS resources are managed with **Terraform** so the whole stack can be
+deployed and torn down on demand (`terraform apply` / `terraform destroy`),
+which keeps hourly-billed resources like the NAT Gateway, ALB, EC2 and RDS
+from running when they aren't needed.
+
+| Terraform | Console (one-time) | Script |
+|---|---|---|
+| S3 buckets (CORS, lifecycle, encryption, event notifications), SQS, EventBridge Pipes, Step Functions, IAM roles and policies, ECR, VPC, ECS, ALB, RDS, CloudWatch log groups and alarms | Terraform state bucket, AWS Budget alert, Bedrock model access | `docker build` + push to ECR |
+
+## Status
+
+- [x] Go API with JWT auth, Postgres, React frontend
+- [x] Direct-to-S3 uploads and playback via presigned URLs
+- [ ] Terraform for the existing S3 bucket
+- [ ] S3 event notifications → SQS
+- [ ] EventBridge Pipe → Step Functions → MediaConvert, Transcribe, Bedrock
+- [ ] Results in the dashboard
+- [ ] ECS, ALB, RDS, CloudFront, Route 53 deployment
+
 ## How this is being built
 
 - **Frontend**: React + TypeScript + Vite + Tailwind
 - **Backend**: Go (Gin), Postgres
+- **Infrastructure**: AWS Console to learn each service, then Terraform
 
 ## Project layout
 
 ```
 backend/
-  cmd/server/       API server entrypoint
-  internal/config/   env-based configuration
+  cmd/server/         API server entrypoint
+  internal/config/    env-based configuration
   internal/db/        Postgres connection + embedded SQL migrations
   internal/models/    shared data types
   internal/store/     SQL queries
   internal/auth/      JWT + password hashing
-  internal/storage/   local filesystem storage (swaps to S3 once a bucket exists)
+  internal/storage/   S3 presigned URLs, or local filesystem for offline dev
   internal/handlers/  HTTP handlers
   internal/router/    route wiring
 frontend/
   src/api/            typed API client
   src/context/        auth context
-  src/pages/           Login, Register, Dashboard, Upload, VideoDetail
+  src/pages/          Login, Register, Dashboard, Upload, VideoDetail
   src/components/     shared UI pieces
 infra/
-  CDK app (not started yet — infra is being built in the Console first)
+  Terraform (in progress)
 ```
 
 ## Running locally
@@ -251,11 +288,6 @@ npm run dev
 Open http://localhost:5173, register an account, and upload a video. With
 local storage it's saved under `backend/data/`; with S3 it goes straight from
 the browser to the bucket via a presigned URL.
-
-#Infrastructure as a code
-
-During deployment we use Terraform for handling the infra as code for easy
-deploy and drop
 
 ## Environment variables
 
