@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,9 +16,14 @@ import (
 	"videointell/backend/internal/store"
 )
 
+type ObjectStorage interface {
+	PresignUpload(ctx context.Context, key, contentType string) (string, error)
+	PublicURL(ctx context.Context, key string) (string, error)
+}
+
 type VideoHandler struct {
 	Store   *store.Store
-	Storage *storage.LocalStorage
+	Storage ObjectStorage
 }
 
 type createVideoRequest struct {
@@ -32,14 +41,26 @@ func (h *VideoHandler) Create(c *gin.Context) {
 		return
 	}
 
-	key := fmt.Sprintf("uploads/%s/%d-%s", userID, time.Now().UnixNano(), req.Filename)
+	if !strings.HasPrefix(req.ContentType, "video/") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "content_type must be a video type"})
+		return
+	}
+
+	key := fmt.Sprintf("uploads/%s/%d-%s", userID, time.Now().UnixNano(), path.Base(req.Filename))
+	uploadURL, err := h.Storage.PresignUpload(c.Request.Context(), key, req.ContentType)
+	if err != nil {
+		log.Printf("presign upload: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create upload url"})
+		return
+	}
+
 	video, err := h.Store.CreateVideo(userID, req.Title, key, req.ContentType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"video": video, "upload_url": h.Storage.PresignUpload(key)})
+	c.JSON(http.StatusCreated, gin.H{"video": video, "upload_url": uploadURL})
 }
 
 func (h *VideoHandler) CompleteUpload(c *gin.Context) {
@@ -82,13 +103,23 @@ func (h *VideoHandler) Detail(c *gin.Context) {
 
 	detail := models.VideoDetail{Video: video}
 	if video.Status == "uploaded" {
-		detail.URL = h.Storage.PublicURL(video.OriginalKey)
+		url, err := h.Storage.PublicURL(c.Request.Context(), video.OriginalKey)
+		if err != nil {
+			log.Printf("presign download: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create playback url"})
+			return
+		}
+		detail.URL = url
 	}
 
 	c.JSON(http.StatusOK, detail)
 }
 
-func (h *VideoHandler) LocalUpload(c *gin.Context) {
+type LocalFilesHandler struct {
+	Storage *storage.LocalStorage
+}
+
+func (h *LocalFilesHandler) Upload(c *gin.Context) {
 	key := c.Param("key")[1:]
 	body, err := c.GetRawData()
 	if err != nil {
@@ -106,7 +137,7 @@ func (h *VideoHandler) LocalUpload(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (h *VideoHandler) LocalFile(c *gin.Context) {
+func (h *LocalFilesHandler) File(c *gin.Context) {
 	key := c.Param("key")[1:]
 	body, err := h.Storage.GetObject(key)
 	if err != nil {

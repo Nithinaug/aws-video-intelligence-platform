@@ -15,10 +15,11 @@ export default function Upload() {
     setError(null)
     try {
       setProgress('Creating video record...')
-      const { video, upload_url } = await createVideo(title || file.name, file.name, file.type || 'video/mp4')
+      const contentType = file.type || 'video/mp4'
+      const { video, upload_url } = await createVideo(title || file.name, file.name, contentType)
 
       setProgress('Uploading file...')
-      await uploadToPresignedUrl(upload_url, file)
+      await uploadToPresignedUrl(upload_url, file, contentType)
 
       setProgress('Finalizing...')
       await completeUpload(video.id)

@@ -57,8 +57,8 @@ export async function createVideo(title: string, filename: string, contentType: 
   return data
 }
 
-export async function uploadToPresignedUrl(uploadUrl: string, file: File) {
-  await axios.put(uploadUrl, file, { headers: { 'Content-Type': file.type } })
+export async function uploadToPresignedUrl(uploadUrl: string, file: File, contentType: string) {
+  await axios.put(uploadUrl, file, { headers: { 'Content-Type': contentType } })
 }
 
 export async function completeUpload(videoId: string) {
